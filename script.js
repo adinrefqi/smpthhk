@@ -1,8 +1,14 @@
 // State Management
 const STORAGE_KEY = 'sistem_nilai_data';
-const SUPABASE_URL = 'https://juhjhlzaqhbaexagqsqe.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1aGpobHphcWhiYWV4YWdxc3FlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3NTUxOTEsImV4cCI6MjA4MDMzMTE5MX0.4NlzpJfsdjyTsRha52Q53LRUmYRdy9P-cBSN2JPMQ0U';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const SUPABASE_URL = 'https://syhogxzdcnakccypuedy.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5aG9neHpkY25ha2NjeXB1ZWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4Mjg1NjUsImV4cCI6MjA4MDQwNDU2NX0.tBmCXNCcsiSMmBA9MyHYSuKdXq67m5TzzhxcOEaB560';
+
+let sb;
+if (typeof supabase !== 'undefined') {
+    sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+} else {
+    alert('CRITICAL: Library Supabase tidak termuat. Periksa koneksi internet Anda.');
+}
 
 let appData = {
     kelas: [],
@@ -19,33 +25,54 @@ let appData = {
 // --- LOGIKA LOGIN BARU (SUPABASE AUTH) ---
 
 async function checkLogin() {
-    // Cek apakah ada user yang sedang login di Supabase
-    const { data: { session } } = await sb.auth.getSession();
+    if (!sb) return; // Supabase belum siap
 
-    if (!session) {
-        document.getElementById('login-overlay').classList.remove('hidden');
-    } else {
-        document.getElementById('login-overlay').classList.add('hidden');
-        // Setelah login, cek dia Guru atau Admin
-        checkUserRole(session.user.id);
+    // Cek apakah ada user yang sedang login di Supabase
+    try {
+        const { data: { session } } = await sb.auth.getSession();
+
+        if (!session) {
+            document.getElementById('login-overlay').classList.remove('hidden');
+        } else {
+            document.getElementById('login-overlay').classList.add('hidden');
+            // Setelah login, cek dia Guru atau Admin
+            checkUserRole(session.user.id);
+        }
+    } catch (err) {
+        console.error("Error checking session:", err);
     }
 }
 
 async function handleLogin() {
+    console.log("Tombol Masuk diklik");
+
+    if (!sb) {
+        alert('Sistem belum siap (Supabase tidak terhubung). Coba refresh halaman.');
+        return;
+    }
+
     const email = document.getElementById('login-email').value;
     const password = document.getElementById('login-password').value;
 
-    // Login menggunakan Supabase (Aman & Terenkripsi)
-    const { data, error } = await sb.auth.signInWithPassword({
-        email: email,
-        password: password
-    });
+    if (!email || !password) {
+        return alert('Mohon isi email dan password!');
+    }
 
-    if (error) {
-        alert('Login Gagal: ' + error.message);
-    } else {
-        // Jika sukses, overlay hilang otomatis karena checkLogin akan berjalan
-        location.reload();
+    // Login menggunakan Supabase (Aman & Terenkripsi)
+    try {
+        const { data, error } = await sb.auth.signInWithPassword({
+            email: email,
+            password: password
+        });
+
+        if (error) {
+            alert('Login Gagal: ' + error.message);
+        } else {
+            // Jika sukses, overlay hilang otomatis karena checkLogin akan berjalan
+            location.reload();
+        }
+    } catch (err) {
+        alert('Terjadi kesalahan saat login: ' + err.message);
     }
 }
 
@@ -79,38 +106,23 @@ async function checkUserRole(userId) {
                 'menu-master-siswa', // Siswa
                 'menu-master-mapel', // Mapel
                 'menu-master-kategori', // Kategori
-                'menu-system' // Reset Data
+                'menu-bobot', // Atur Bobot
+                'menu-rekap-nilai', // Rekap Nilai
+                'menu-input-kehadiran', // Input Kehadiran (sudah ada di jurnal)
+                'menu-rekap-kehadiran', // Rekap Kehadiran
+                'menu-system', // Reset Data
+                'divider-master-data', // Divider Master Data
+                'divider-system' // Divider System
             ];
 
             restrictedMenus.forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.style.display = 'none';
             });
-
-            // Sembunyikan juga separator "Master Data" dan "System" jika perlu
-            // (Opsional, untuk kerapihan tampilan)
         }
     }
 }
 
-// PWA Install Logic
-let deferredPrompt;
-
-window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-});
-
-async function installPWA() {
-    if (deferredPrompt) {
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        console.log(`User response to the install prompt: ${outcome}`);
-        deferredPrompt = null;
-    } else {
-        alert('Aplikasi sudah terinstall atau browser tidak mendukung instalasi.');
-    }
-}
 
 // Initialization
 document.addEventListener('DOMContentLoaded', () => {
@@ -1250,44 +1262,31 @@ async function saveKehadiran() {
     kehadiranToSave.forEach(k => {
         appData.kehadiran.push({ ...k, kelasId: k.kelas_id, mapelId: k.mapel_id, siswaId: k.siswa_id });
     });
-
-    alert(`${count} Data kehadiran berhasil disimpan!`);
+    return;
 }
 
-function renderRekapKehadiranTable() {
-    const kelasId = document.getElementById('rekap-absensi-kelas').value;
-    const mapelId = document.getElementById('rekap-absensi-mapel').value;
-    const startDate = document.getElementById('rekap-absensi-start').value;
-    const endDate = document.getElementById('rekap-absensi-end').value;
-    const tbody = document.getElementById('table-rekap-kehadiran-body');
+const siswaInKelas = appData.siswa.filter(s => s.kelasId === kelasId);
+tbody.innerHTML = '';
 
-    if (!kelasId || !mapelId) {
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center">Pilih Kelas dan Mata Pelajaran.</td></tr>';
-        return;
-    }
+siswaInKelas.forEach((s, index) => {
+    // Filter attendance records
+    const records = appData.kehadiran.filter(k => {
+        const isSiswa = k.siswaId === s.id;
+        const isMapel = k.mapelId === mapelId;
+        const isDateInRange = (!startDate || k.tanggal >= startDate) && (!endDate || k.tanggal <= endDate);
+        return isSiswa && isMapel && isDateInRange;
+    });
 
-    const siswaInKelas = appData.siswa.filter(s => s.kelasId === kelasId);
-    tbody.innerHTML = '';
+    const hadir = records.filter(r => r.status === 'H').length;
+    const izin = records.filter(r => r.status === 'I').length;
+    const sakit = records.filter(r => r.status === 'S').length;
+    const alpha = records.filter(r => r.status === 'A').length;
+    const totalPertemuan = records.length;
 
-    siswaInKelas.forEach((s, index) => {
-        // Filter attendance records
-        const records = appData.kehadiran.filter(k => {
-            const isSiswa = k.siswaId === s.id;
-            const isMapel = k.mapelId === mapelId;
-            const isDateInRange = (!startDate || k.tanggal >= startDate) && (!endDate || k.tanggal <= endDate);
-            return isSiswa && isMapel && isDateInRange;
-        });
+    const persentase = totalPertemuan > 0 ? Math.round((hadir / totalPertemuan) * 100) : 0;
 
-        const hadir = records.filter(r => r.status === 'H').length;
-        const izin = records.filter(r => r.status === 'I').length;
-        const sakit = records.filter(r => r.status === 'S').length;
-        const alpha = records.filter(r => r.status === 'A').length;
-        const totalPertemuan = records.length;
-
-        const persentase = totalPertemuan > 0 ? Math.round((hadir / totalPertemuan) * 100) : 0;
-
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
             <td>${index + 1}</td>
             <td>${s.nama}</td>
             <td>${hadir}</td>
@@ -1296,9 +1295,9 @@ function renderRekapKehadiranTable() {
             <td>${alpha}</td>
             <td>${persentase}%</td>
         `;
-        tbody.appendChild(tr);
-    });
-}
+    tbody.appendChild(tr);
+});
+        }
 
 function exportAttendanceToExcel() {
     const table = document.querySelector('#view-rekap-kehadiran table');
