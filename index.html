@@ -82,14 +82,10 @@
                     <i class="fa-solid fa-pen-to-square"></i> Input Nilai
                 </button>
                 <button class="nav-item" data-target="rekap">
-                    <i class="fa-solid fa-chart-pie"></i> Rekap Nilai
+                    <i class="fa-solid fa-table"></i> Rekap Nilai
                 </button>
-                <button class="nav-item" data-target="rekap">
-                    <i class="fa-solid fa-chart-pie"></i> Rekap Nilai
-                </button>
-                <div class="nav-divider">Kehadiran</div>
                 <button class="nav-item" data-target="input-kehadiran">
-                    <i class="fa-solid fa-user-check"></i> Input Kehadiran
+                    <i class="fa-solid fa-calendar-check"></i> Input Kehadiran
                 </button>
                 <button class="nav-item" data-target="rekap-kehadiran">
                     <i class="fa-solid fa-clipboard-user"></i> Rekap Kehadiran
@@ -104,463 +100,476 @@
 
         <!-- Main Content -->
         <main class="main-content">
-            <header class="top-bar">
-                <button id="sidebar-toggle" class="btn-icon mobile-only" onclick="toggleSidebar()">
-                    <i class="fa-solid fa-bars"></i>
-                </button>
-                <h2 id="page-title">Dashboard</h2>
-                <div class="user-profile">
-                    <span>Administrator</span>
-                    <div class="avatar"><i class="fa-solid fa-user"></i></div>
-                </div>
-            </header>
+            <button id="sidebar-toggle" class="btn-icon mobile-only" onclick="toggleSidebar()">
+                <i class="fa-solid fa-bars"></i>
+            </button>
 
-            <div id="content-area" class="content-area">
-                <!-- Views will be injected here by JS -->
-
-                <!-- Dashboard View -->
-                <div id="view-dashboard" class="view-section active">
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <div class="icon-bg blue"><i class="fa-solid fa-users"></i></div>
-                            <div class="stat-info">
-                                <h3>Total Siswa</h3>
-                                <p id="stat-siswa">0</p>
-                            </div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="icon-bg green"><i class="fa-solid fa-chalkboard"></i></div>
-                            <div class="stat-info">
-                                <h3>Total Kelas</h3>
-                                <p id="stat-kelas">0</p>
-                            </div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="icon-bg purple"><i class="fa-solid fa-book"></i></div>
-                            <div class="stat-info">
-                                <h3>Mata Pelajaran</h3>
-                                <p id="stat-mapel">0</p>
-                            </div>
-                        </div>
+            <div id="view-dashboard" class="view-section active">
+                <div class="dashboard-header-custom">
+                    <div class="header-text">
+                        <h2>Selamat Datang, Bapak/Ibu Guru</h2>
+                        <p>SMP THHK • Sistem Manajemen Nilai</p>
+                        <div class="status-badge"><span class="dot"></span> Online</div>
                     </div>
-
-                    <div class="welcome-banner">
-                        <div class="banner-text">
-                            <h3>Selamat Datang di Sistem Manajemen Nilai</h3>
-                            <p>Kelola nilai siswa dengan mudah, cepat, dan akurat. Ikuti alur kerja yang disarankan
-                                untuk memulai.</p>
-                        </div>
-                        <div class="workflow-steps">
-                            <div class="step">1. Kelas</div>
-                            <div class="arrow">→</div>
-                            <div class="step">2. Siswa</div>
-                            <div class="arrow">→</div>
-                            <div class="step">3. Mapel</div>
-                            <div class="arrow">→</div>
-                            <div class="step">4. Kategori</div>
-                            <div class="arrow">→</div>
-                            <div class="step">5. Bobot</div>
-                            <div class="arrow">→</div>
-                            <div class="step">6. Input</div>
-                        </div>
+                    <div class="header-actions">
+                        <button class="btn-secondary" onclick="location.reload()"><i
+                                class="fa-solid fa-rotate-right"></i> Refresh App</button>
+                        <button class="btn-secondary" onclick="installPWA()"><i class="fa-solid fa-download"></i> Instal
+                            Aplikasi</button>
+                        <button class="btn-outline-danger" onclick="handleLogout()"><i
+                                class="fa-solid fa-power-off"></i> Logout</button>
                     </div>
                 </div>
 
-                <!-- Kelola Kelas -->
-                <div id="view-kelas" class="view-section">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3>Daftar Kelas</h3>
-                            <button class="btn-primary" onclick="openModal('modal-kelas')"><i
-                                    class="fa-solid fa-plus"></i> Tambah Kelas</button>
+                <div class="stats-grid">
+                    <div class="stat-card" id="card-siswa">
+                        <div class="stat-content">
+                            <h3>Total Siswa</h3>
+                            <div class="stat-number" id="stat-siswa">0</div>
+                            <div class="stat-label">Siswa Terdaftar</div>
                         </div>
-                        <div class="table-responsive">
-                            <table class="table">
-                                <thead>
-                                    <tr>
-                                        <th>No</th>
-                                        <th>Nama Kelas</th>
-                                        <th>Jumlah Siswa</th>
-                                        <th>Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="table-kelas-body">
-                                    <!-- Data -->
-                                </tbody>
-                            </table>
+                        <div class="icon-bg blue"><i class="fa-solid fa-users"></i></div>
+                    </div>
+                    <div class="stat-card" id="card-kelas">
+                        <div class="stat-content">
+                            <h3>Total Kelas</h3>
+                            <div class="stat-number" id="stat-kelas">0</div>
+                            <div class="stat-label">Kelas Aktif</div>
                         </div>
+                        <div class="icon-bg green"><i class="fa-solid fa-chalkboard-user"></i></div>
+                    </div>
+                    <div class="stat-card" id="card-mapel">
+                        <div class="stat-content">
+                            <h3>Mata Pelajaran</h3>
+                            <div class="stat-number" id="stat-mapel">0</div>
+                            <div class="stat-label">Mapel Diajarkan</div>
+                        </div>
+                        <div class="icon-bg purple"><i class="fa-solid fa-book"></i></div>
+                    </div>
+                    <div class="stat-card" id="card-kategori">
+                        <div class="stat-content">
+                            <h3>Kategori Nilai</h3>
+                            <div class="stat-number" id="stat-kategori">0</div>
+                            <div class="stat-label">Jenis Penilaian</div>
+                        </div>
+                        <div class="icon-bg orange"><i class="fa-solid fa-tags"></i></div>
+                    </div>
+                    <div class="stat-card" id="card-rata">
+                        <div class="stat-content">
+                            <h3>Rata-rata Nilai</h3>
+                            <div class="stat-number" id="stat-rata">0</div>
+                            <div class="stat-label">Seluruh Siswa</div>
+                        </div>
+                        <div class="icon-bg indigo"><i class="fa-solid fa-chart-line"></i></div>
                     </div>
                 </div>
+            </div>
 
-                <!-- Kelola Siswa -->
-                <div id="view-siswa" class="view-section">
-                    <div class="card">
-                        <div class="card-header" style="align-items: center;">
-                            <h3>Daftar Siswa</h3>
-                            <div class="actions" style="display: flex; gap: 0.5rem;">
-                                <button class="btn-secondary" onclick="downloadStudentTemplate()"><i
-                                        class="fa-solid fa-download"></i> Template</button>
-                                <button class="btn-secondary"
-                                    onclick="document.getElementById('import-siswa-file').click()"><i
-                                        class="fa-solid fa-upload"></i> Import</button>
-                                <input type="file" id="import-siswa-file" hidden accept=".xlsx, .xls, .csv"
-                                    onchange="handleStudentImport(this)">
-                                <button class="btn-primary" onclick="openModal('modal-siswa')"><i
-                                        class="fa-solid fa-plus"></i> Tambah Siswa</button>
-                            </div>
+            <!-- Kelola Kelas -->
+            <div id="view-kelas" class="view-section">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Daftar Kelas</h3>
+                        <button class="btn-primary" onclick="openModal('modal-kelas')"><i class="fa-solid fa-plus"></i>
+                            Tambah
+                            Kelas</button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>No</th>
+                                    <th>Nama Kelas</th>
+                                    <th>Jumlah Siswa</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-kelas-body">
+                                <!-- Data -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Kelola Siswa -->
+            <div id="view-siswa" class="view-section">
+                <div class="card">
+                    <div class="card-header" style="align-items: center;">
+                        <h3>Daftar Siswa</h3>
+                        <div class="actions" style="display: flex; gap: 0.5rem;">
+                            <button class="btn-secondary" onclick="downloadStudentTemplate()"><i
+                                    class="fa-solid fa-download"></i> Template</button>
+                            <button class="btn-secondary"
+                                onclick="document.getElementById('import-siswa-file').click()"><i
+                                    class="fa-solid fa-upload"></i> Import</button>
+                            <input type="file" id="import-siswa-file" hidden accept=".xlsx, .xls, .csv"
+                                onchange="handleStudentImport(this)">
+                            <button class="btn-primary" onclick="openModal('modal-siswa')"><i
+                                    class="fa-solid fa-plus"></i>
+                                Tambah Siswa</button>
                         </div>
-                        <div class="filter-bar">
-                            <select id="filter-siswa-kelas" class="form-control" onchange="renderSiswaTable()">
-                                <option value="">Semua Kelas</option>
+                    </div>
+                    <div class="filter-bar">
+                        <select id="filter-siswa-kelas" class="form-control" onchange="renderSiswaTable()">
+                            <option value="">Semua Kelas</option>
+                        </select>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>No</th>
+                                    <th>NIS</th>
+                                    <th>Nama Siswa</th>
+                                    <th>Kelas</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-siswa-body">
+                                <!-- Data -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Kelola Mapel -->
+            <div id="view-mapel" class="view-section">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Daftar Mata Pelajaran</h3>
+                        <button class="btn-primary" onclick="openModal('modal-mapel')"><i class="fa-solid fa-plus"></i>
+                            Tambah
+                            Mapel</button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>No</th>
+                                    <th>Nama Mata Pelajaran</th>
+                                    <th>Deskripsi</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-mapel-body">
+                                <!-- Data -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Jurnal Harian -->
+            <div id="view-jurnal" class="view-section">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Jurnal Harian Guru</h3>
+                        <button class="btn-primary" onclick="openModal('modal-jurnal')"><i class="fa-solid fa-plus"></i>
+                            Tambah
+                            Jurnal</button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>No</th>
+                                    <th>Tanggal</th>
+                                    <th>Kelas</th>
+                                    <th>Mapel</th>
+                                    <th>Materi</th>
+                                    <th>Metode</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-jurnal-body">
+                                <!-- Data -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Kelola Kategori -->
+            <div id="view-kategori" class="view-section">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Kategori Penilaian</h3>
+                        <button class="btn-primary" onclick="openModal('modal-kategori')"><i
+                                class="fa-solid fa-plus"></i>
+                            Tambah Kategori</button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>No</th>
+                                    <th>Nama Kategori</th>
+                                    <th>Deskripsi</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-kategori-body">
+                                <!-- Data -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Atur Bobot -->
+            <div id="view-bobot" class="view-section">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Pengaturan Bobot Penilaian</h3>
+                        <button class="btn-primary" onclick="saveWeights()"><i class="fa-solid fa-save"></i> Simpan
+                            Bobot</button>
+                    </div>
+                    <div class="form-group">
+                        <label>Pilih Mata Pelajaran</label>
+                        <select id="select-bobot-mapel" class="form-control" onchange="renderBobotForm()">
+                            <option value="">-- Pilih Mapel --</option>
+                        </select>
+                    </div>
+                    <div id="bobot-container" class="bobot-container">
+                        <!-- Dynamic Weight Inputs -->
+                        <p class="text-muted">Silakan pilih mata pelajaran terlebih dahulu.</p>
+                    </div>
+                    <div class="total-bobot-display">
+                        Total Bobot: <span id="total-bobot-value">0</span>%
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input Nilai -->
+            <div id="view-input-nilai" class="view-section">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Input Nilai Siswa</h3>
+                        <button class="btn-primary" onclick="saveGrades()"><i class="fa-solid fa-check"></i> Simpan
+                            Semua</button>
+                    </div>
+                    <div class="filters-grid">
+                        <div class="form-group">
+                            <label>Kelas</label>
+                            <select id="input-kelas" class="form-control" onchange="prepareInputNilai()">
+                                <option value="">-- Pilih Kelas --</option>
                             </select>
                         </div>
-                        <div class="table-responsive">
-                            <table class="table">
-                                <thead>
-                                    <tr>
-                                        <th>No</th>
-                                        <th>NIS</th>
-                                        <th>Nama Siswa</th>
-                                        <th>Kelas</th>
-                                        <th>Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="table-siswa-body">
-                                    <!-- Data -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Kelola Mapel -->
-                <div id="view-mapel" class="view-section">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3>Daftar Mata Pelajaran</h3>
-                            <button class="btn-primary" onclick="openModal('modal-mapel')"><i
-                                    class="fa-solid fa-plus"></i> Tambah Mapel</button>
-                        </div>
-                        <div class="table-responsive">
-                            <table class="table">
-                                <thead>
-                                    <tr>
-                                        <th>No</th>
-                                        <th>Nama Mata Pelajaran</th>
-                                        <th>Deskripsi</th>
-                                        <th>Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="table-mapel-body">
-                                    <!-- Data -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Jurnal Harian -->
-                <div id="view-jurnal" class="view-section">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3>Jurnal Harian Guru</h3>
-                            <button class="btn-primary" onclick="openModal('modal-jurnal')"><i
-                                    class="fa-solid fa-plus"></i> Tambah Jurnal</button>
-                        </div>
-                        <div class="table-responsive">
-                            <table class="table">
-                                <thead>
-                                    <tr>
-                                        <th>No</th>
-                                        <th>Tanggal</th>
-                                        <th>Kelas</th>
-                                        <th>Mapel</th>
-                                        <th>Materi</th>
-                                        <th>Metode</th>
-                                        <th>Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="table-jurnal-body">
-                                    <!-- Data -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Kelola Kategori -->
-                <div id="view-kategori" class="view-section">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3>Kategori Penilaian</h3>
-                            <button class="btn-primary" onclick="openModal('modal-kategori')"><i
-                                    class="fa-solid fa-plus"></i> Tambah Kategori</button>
-                        </div>
-                        <div class="table-responsive">
-                            <table class="table">
-                                <thead>
-                                    <tr>
-                                        <th>No</th>
-                                        <th>Nama Kategori</th>
-                                        <th>Deskripsi</th>
-                                        <th>Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="table-kategori-body">
-                                    <!-- Data -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Atur Bobot -->
-                <div id="view-bobot" class="view-section">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3>Pengaturan Bobot Penilaian</h3>
-                            <button class="btn-primary" onclick="saveWeights()"><i class="fa-solid fa-save"></i> Simpan
-                                Bobot</button>
-                        </div>
                         <div class="form-group">
-                            <label>Pilih Mata Pelajaran</label>
-                            <select id="select-bobot-mapel" class="form-control" onchange="renderBobotForm()">
+                            <label>Mata Pelajaran</label>
+                            <select id="input-mapel" class="form-control" onchange="prepareInputNilai()">
                                 <option value="">-- Pilih Mapel --</option>
                             </select>
                         </div>
-                        <div id="bobot-container" class="bobot-container">
-                            <!-- Dynamic Weight Inputs -->
-                            <p class="text-muted">Silakan pilih mata pelajaran terlebih dahulu.</p>
-                        </div>
-                        <div class="total-bobot-display">
-                            Total Bobot: <span id="total-bobot-value">0</span>%
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Input Nilai -->
-                <div id="view-input-nilai" class="view-section">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3>Input Nilai Siswa</h3>
-                            <button class="btn-primary" onclick="saveGrades()"><i class="fa-solid fa-check"></i> Simpan
-                                Semua</button>
-                        </div>
-                        <div class="filters-grid">
-                            <div class="form-group">
-                                <label>Kelas</label>
-                                <select id="input-kelas" class="form-control" onchange="prepareInputNilai()">
-                                    <option value="">-- Pilih Kelas --</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Mata Pelajaran</label>
-                                <select id="input-mapel" class="form-control" onchange="prepareInputNilai()">
-                                    <option value="">-- Pilih Mapel --</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Kategori</label>
-                                <select id="input-kategori" class="form-control" onchange="prepareInputNilai()">
-                                    <option value="">-- Pilih Kategori --</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="table-responsive mt-4">
-                            <table class="table">
-                                <thead>
-                                    <tr>
-                                        <th>No</th>
-                                        <th>Nama Siswa</th>
-                                        <th>Nilai (0-100)</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="table-input-nilai-body">
-                                    <!-- Data -->
-                                </tbody>
-                            </table>
+                        <div class="form-group">
+                            <label>Kategori</label>
+                            <select id="input-kategori" class="form-control" onchange="prepareInputNilai()">
+                                <option value="">-- Pilih Kategori --</option>
+                            </select>
                         </div>
                     </div>
-                </div>
-
-                <!-- Rekap Nilai -->
-                <div id="view-rekap" class="view-section">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3>Rekapitulasi Nilai</h3>
-                            <div class="actions">
-                                <button class="btn-secondary" onclick="exportToExcel()"><i
-                                        class="fa-solid fa-file-excel"></i> Export Excel</button>
-                                <button class="btn-secondary" onclick="window.print()"><i class="fa-solid fa-print"></i>
-                                    Cetak</button>
-                            </div>
-                        </div>
-                        <div class="filters-grid">
-                            <div class="form-group">
-                                <label>Kelas</label>
-                                <select id="rekap-kelas" class="form-control" onchange="renderRekapTable()">
-                                    <option value="">-- Pilih Kelas --</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Mata Pelajaran</label>
-                                <select id="rekap-mapel" class="form-control" onchange="renderRekapTable()">
-                                    <option value="">-- Pilih Mapel --</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="table-responsive mt-4">
-                            <table class="table" id="rekap-table">
-                                <thead>
-                                    <tr id="rekap-table-head">
-                                        <!-- Dynamic Headers -->
-                                    </tr>
-                                </thead>
-                                <tbody id="rekap-table-body">
-                                    <!-- Data -->
-                                </tbody>
-                            </table>
-                        </div>
+                    <div class="table-responsive mt-4">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>No</th>
+                                    <th>Nama Siswa</th>
+                                    <th>Nilai (0-100)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-input-nilai-body">
+                                <!-- Data -->
+                            </tbody>
+                        </table>
                     </div>
                 </div>
-
-                <!-- Input Kehadiran -->
-                <div id="view-input-kehadiran" class="view-section">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3>Input Kehadiran Siswa</h3>
-                            <button class="btn-primary" onclick="saveKehadiran()"><i class="fa-solid fa-save"></i>
-                                Simpan Kehadiran</button>
-                        </div>
-                        <div class="filters-grid">
-                            <div class="form-group">
-                                <label>Kelas</label>
-                                <select id="absensi-kelas" class="form-control" onchange="renderInputKehadiranTable()">
-                                    <option value="">-- Pilih Kelas --</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Mata Pelajaran</label>
-                                <select id="absensi-mapel" class="form-control" onchange="renderInputKehadiranTable()">
-                                    <option value="">-- Pilih Mapel --</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Tanggal</label>
-                                <input type="date" id="absensi-tanggal" class="form-control"
-                                    onchange="renderInputKehadiranTable()">
-                            </div>
-                        </div>
-                        <div class="table-responsive mt-4">
-                            <table class="table">
-                                <thead>
-                                    <tr>
-                                        <th>No</th>
-                                        <th>Nama Siswa</th>
-                                        <th class="text-center">Hadir</th>
-                                        <th class="text-center">Izin</th>
-                                        <th class="text-center">Sakit</th>
-                                        <th class="text-center">Alpha</th>
-                                        <th>Keterangan</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="table-input-kehadiran-body">
-                                    <!-- Data -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Rekap Kehadiran -->
-                <div id="view-rekap-kehadiran" class="view-section">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3>Rekap Kehadiran Siswa</h3>
-                            <div class="actions">
-                                <button class="btn-secondary" onclick="exportRekapKehadiran()"><i
-                                        class="fa-solid fa-file-excel"></i> Export Excel</button>
-                            </div>
-                        </div>
-                        <div class="filters-grid">
-                            <div class="form-group">
-                                <label>Kelas</label>
-                                <select id="rekap-absensi-kelas" class="form-control"
-                                    onchange="renderRekapKehadiranTable()">
-                                    <option value="">-- Pilih Kelas --</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Mata Pelajaran</label>
-                                <select id="rekap-absensi-mapel" class="form-control"
-                                    onchange="renderRekapKehadiranTable()">
-                                    <option value="">-- Pilih Mapel --</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Tanggal Mulai</label>
-                                <input type="date" id="rekap-absensi-start" class="form-control"
-                                    onchange="renderRekapKehadiranTable()">
-                            </div>
-                            <div class="form-group">
-                                <label>Tanggal Akhir</label>
-                                <input type="date" id="rekap-absensi-end" class="form-control"
-                                    onchange="renderRekapKehadiranTable()">
-                            </div>
-                        </div>
-                        <div class="table-responsive mt-4">
-                            <table class="table">
-                                <thead>
-                                    <tr>
-                                        <th>No</th>
-                                        <th>Nama Siswa</th>
-                                        <th>Hadir</th>
-                                        <th>Izin</th>
-                                        <th>Sakit</th>
-                                        <th>Alpha</th>
-                                        <th>% Kehadiran</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="table-rekap-kehadiran-body">
-                                    <!-- Data -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Kelola Data -->
-                <div id="view-data" class="view-section">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3>Manajemen Data</h3>
-                        </div>
-                        <div class="data-actions">
-                            <div class="action-card">
-                                <i class="fa-solid fa-download"></i>
-                                <h4>Backup Data</h4>
-                                <p>Download seluruh data sistem dalam format JSON.</p>
-                                <button class="btn-primary" onclick="backupData()">Export Data</button>
-                            </div>
-                            <div class="action-card">
-                                <i class="fa-solid fa-upload"></i>
-                                <h4>Restore Data</h4>
-                                <p>Upload file backup JSON untuk mengembalikan data.</p>
-                                <input type="file" id="import-file" style="display: none;" onchange="restoreData(this)">
-                                <button class="btn-secondary"
-                                    onclick="document.getElementById('import-file').click()">Import Data</button>
-                            </div>
-                            <div class="action-card danger">
-                                <i class="fa-solid fa-trash-can"></i>
-                                <h4>Reset Data</h4>
-                                <p>Hapus seluruh data sistem. Tindakan ini tidak dapat dibatalkan.</p>
-                                <button class="btn-danger" onclick="resetData()">Reset Data</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
             </div>
+
+            <!-- Input Kehadiran -->
+            <div id="view-input-kehadiran" class="view-section">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Input Kehadiran Siswa</h3>
+                        <button class="btn-primary" onclick="saveKehadiran()"><i class="fa-solid fa-save"></i>
+                            Simpan Kehadiran</button>
+                    </div>
+                    <div class="filters-grid">
+                        <div class="form-group">
+                            <label>Kelas</label>
+                            <select id="absensi-kelas" class="form-control" onchange="renderInputKehadiranTable()">
+                                <option value="">-- Pilih Kelas --</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Mata Pelajaran</label>
+                            <select id="absensi-mapel" class="form-control" onchange="renderInputKehadiranTable()">
+                                <option value="">-- Pilih Mapel --</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Tanggal</label>
+                            <input type="date" id="absensi-tanggal" class="form-control"
+                                onchange="renderInputKehadiranTable()">
+                        </div>
+                    </div>
+                    <div class="table-responsive mt-4">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>No</th>
+                                    <th>Nama Siswa</th>
+                                    <th class="text-center">Hadir</th>
+                                    <th class="text-center">Izin</th>
+                                    <th class="text-center">Sakit</th>
+                                    <th class="text-center">Alpha</th>
+                                    <th>Keterangan</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-input-kehadiran-body">
+                                <!-- Data -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rekap Nilai -->
+            <div id="view-rekap" class="view-section">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Rekapitulasi Nilai</h3>
+                        <div class="actions">
+                            <button class="btn-secondary" onclick="exportToExcel()"><i
+                                    class="fa-solid fa-file-excel"></i>
+                                Export Excel</button>
+                            <button class="btn-secondary" onclick="window.print()"><i class="fa-solid fa-print"></i>
+                                Cetak</button>
+                        </div>
+                    </div>
+                    <div class="filters-grid">
+                        <div class="form-group">
+                            <label>Kelas</label>
+                            <select id="rekap-kelas" class="form-control" onchange="renderRekapTable()">
+                                <option value="">-- Pilih Kelas --</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Mata Pelajaran</label>
+                            <select id="rekap-mapel" class="form-control" onchange="renderRekapTable()">
+                                <option value="">-- Pilih Mapel --</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="table-responsive mt-4">
+                        <table class="table" id="rekap-table">
+                            <thead>
+                                <tr id="rekap-table-head">
+                                    <!-- Dynamic Headers -->
+                                </tr>
+                            </thead>
+                            <tbody id="rekap-table-body">
+                                <!-- Data -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rekap Kehadiran -->
+            <div id="view-rekap-kehadiran" class="view-section">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Rekapitulasi Kehadiran</h3>
+                        <div class="actions">
+                            <button class="btn-secondary" onclick="exportAttendanceToExcel()"><i
+                                    class="fa-solid fa-file-excel"></i>
+                                Export Excel</button>
+                        </div>
+                    </div>
+                    <div class="filters-grid">
+                        <div class="form-group">
+                            <label>Kelas</label>
+                            <select id="rekap-absensi-kelas" class="form-control"
+                                onchange="renderRekapKehadiranTable()">
+                                <option value="">-- Pilih Kelas --</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Mata Pelajaran</label>
+                            <select id="rekap-absensi-mapel" class="form-control"
+                                onchange="renderRekapKehadiranTable()">
+                                <option value="">-- Pilih Mapel --</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Tanggal Mulai</label>
+                            <input type="date" id="rekap-absensi-start" class="form-control"
+                                onchange="renderRekapKehadiranTable()">
+                        </div>
+                        <div class="form-group">
+                            <label>Tanggal Akhir</label>
+                            <input type="date" id="rekap-absensi-end" class="form-control"
+                                onchange="renderRekapKehadiranTable()">
+                        </div>
+                    </div>
+                    <div class="table-responsive mt-4">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>No</th>
+                                    <th>Nama Siswa</th>
+                                    <th>Hadir</th>
+                                    <th>Izin</th>
+                                    <th>Sakit</th>
+                                    <th>Alpha</th>
+                                    <th>% Kehadiran</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-rekap-kehadiran-body">
+                                <!-- Data -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Kelola Data -->
+            <div id="view-data" class="view-section">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Manajemen Data</h3>
+                    </div>
+                    <div class="data-actions">
+                        <div class="action-card">
+                            <i class="fa-solid fa-download"></i>
+                            <h4>Backup Data</h4>
+                            <p>Download seluruh data sistem dalam format JSON.</p>
+                            <button class="btn-primary" onclick="backupData()">Export Data</button>
+                        </div>
+                        <div class="action-card">
+                            <i class="fa-solid fa-upload"></i>
+                            <h4>Restore Data</h4>
+                            <p>Upload file backup JSON untuk mengembalikan data.</p>
+                            <input type="file" id="import-file" style="display: none;" onchange="restoreData(this)">
+                            <button class="btn-secondary"
+                                onclick="document.getElementById('import-file').click()">Import
+                                Data</button>
+                        </div>
+                        <div class="action-card danger">
+                            <i class="fa-solid fa-trash-can"></i>
+                            <h4>Reset Data</h4>
+                            <p>Hapus seluruh data sistem. Tindakan ini tidak dapat dibatalkan.</p>
+                            <button class="btn-danger" onclick="resetData()">Reset Data</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <footer class="app-footer">
+                Developed With <i class="fa-solid fa-rocket"></i> By Adin Refqi L
+            </footer>
         </main>
     </div>
 
@@ -575,6 +584,7 @@
             <div class="modal-body">
                 <div class="form-group">
                     <label>Nama Kelas</label>
+                    <input type="hidden" id="kelas-id">
                     <input type="text" id="kelas-nama" class="form-control" placeholder="Contoh: VII-A">
                 </div>
             </div>
@@ -595,6 +605,7 @@
             <div class="modal-body">
                 <div class="form-group">
                     <label>Nama Siswa</label>
+                    <input type="hidden" id="siswa-id">
                     <input type="text" id="siswa-nama" class="form-control" placeholder="Nama Lengkap">
                 </div>
                 <div class="form-group">
@@ -625,6 +636,7 @@
             <div class="modal-body">
                 <div class="form-group">
                     <label>Nama Mata Pelajaran</label>
+                    <input type="hidden" id="mapel-id">
                     <input type="text" id="mapel-nama" class="form-control" placeholder="Contoh: Matematika">
                 </div>
                 <div class="form-group">
@@ -649,6 +661,7 @@
             <div class="modal-body">
                 <div class="form-group">
                     <label>Nama Kategori</label>
+                    <input type="hidden" id="kategori-id">
                     <input type="text" id="kategori-nama" class="form-control" placeholder="Contoh: UH, UTS, UAS">
                 </div>
                 <div class="form-group">
@@ -678,7 +691,7 @@
                 <div class="filters-grid" style="margin-bottom: 0;">
                     <div class="form-group">
                         <label>Kelas *</label>
-                        <select id="jurnal-kelas" class="form-control">
+                        <select id="jurnal-kelas" class="form-control" onchange="renderJurnalSiswaList()">
                             <!-- Options -->
                         </select>
                     </div>
@@ -702,6 +715,14 @@
                     <label>Catatan</label>
                     <textarea id="jurnal-catatan" class="form-control" rows="3"
                         placeholder="Catatan tambahan"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Absensi Siswa (Opsional)</label>
+                    <div id="jurnal-siswa-list"
+                        style="max-height: 250px; overflow-y: auto; border: 1px solid #e2e8f0; padding: 10px; border-radius: 8px; background: #f8fafc;">
+                        <p class="text-muted" style="text-align: center; font-size: 0.9rem;">Pilih Kelas untuk memuat
+                            daftar siswa.</p>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
