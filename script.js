@@ -16,31 +16,81 @@ let appData = {
 };
 
 // Login Logic
-function checkLogin() {
-    // Simple session check
-    const isLoggedIn = sessionStorage.getItem('isLoggedIn');
-    if (!isLoggedIn) {
+// --- LOGIKA LOGIN BARU (SUPABASE AUTH) ---
+
+async function checkLogin() {
+    // Cek apakah ada user yang sedang login di Supabase
+    const { data: { session } } = await sb.auth.getSession();
+
+    if (!session) {
         document.getElementById('login-overlay').classList.remove('hidden');
     } else {
         document.getElementById('login-overlay').classList.add('hidden');
+        // Setelah login, cek dia Guru atau Admin
+        checkUserRole(session.user.id);
     }
 }
 
-function handleLogin() {
-    const u = document.getElementById('login-username').value;
-    const p = document.getElementById('login-password').value;
+async function handleLogin() {
+    const email = document.getElementById('login-email').value;
+    const password = document.getElementById('login-password').value;
 
-    if (u === 'smpthhk' && p === 'qwerty12345') {
-        sessionStorage.setItem('isLoggedIn', 'true');
-        document.getElementById('login-overlay').classList.add('hidden');
+    // Login menggunakan Supabase (Aman & Terenkripsi)
+    const { data, error } = await sb.auth.signInWithPassword({
+        email: email,
+        password: password
+    });
+
+    if (error) {
+        alert('Login Gagal: ' + error.message);
     } else {
-        alert('Username atau Password salah!');
+        // Jika sukses, overlay hilang otomatis karena checkLogin akan berjalan
+        location.reload();
     }
 }
 
-function handleLogout() {
-    sessionStorage.removeItem('isLoggedIn');
+async function handleLogout() {
+    await sb.auth.signOut();
     location.reload();
+}
+
+// --- SISTEM ROLE (ADMIN vs GURU) ---
+
+async function checkUserRole(userId) {
+    // Ambil data role dari tabel 'profiles'
+    const { data: profile, error } = await sb
+        .from('profiles')
+        .select('role, nama_lengkap')
+        .eq('id', userId)
+        .single();
+
+    if (profile) {
+        console.log("User Login:", profile.nama_lengkap, "Role:", profile.role);
+
+        // Update nama di dashboard
+        const welcomeText = document.querySelector('.header-text h2');
+        if (welcomeText) welcomeText.textContent = `Selamat Datang, ${profile.nama_lengkap || 'Bapak/Ibu Guru'}`;
+
+        // JIKA BUKAN ADMIN (GURU BIASA), SEMBUNYIKAN MENU BERBAHAYA
+        if (profile.role !== 'admin') {
+            // Daftar menu yang harus disembunyikan dari guru
+            const restrictedMenus = [
+                'menu-master-data', // Kelas
+                'menu-master-siswa', // Siswa
+                'menu-master-mapel', // Mapel
+                'menu-master-kategori', // Kategori
+                'menu-system' // Reset Data
+            ];
+
+            restrictedMenus.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.style.display = 'none';
+            });
+
+            // Sembunyikan juga separator "Master Data" dan "System" jika perlu
+            // (Opsional, untuk kerapihan tampilan)
+        }
+    }
 }
 
 // PWA Install Logic
