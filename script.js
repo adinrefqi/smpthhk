@@ -1,18 +1,70 @@
 // State Management
 const STORAGE_KEY = 'sistem_nilai_data';
+const SUPABASE_URL = 'https://juhjhlzaqhbaexagqsqe.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1aGpobHphcWhiYWV4YWdxc3FlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3NTUxOTEsImV4cCI6MjA4MDMzMTE5MX0.4NlzpJfsdjyTsRha52Q53LRUmYRdy9P-cBSN2JPMQ0U';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
 let appData = {
     kelas: [],
     siswa: [],
     mapel: [],
     kategori: [],
-    jurnal: [], // { id, tanggal, kelasId, mapelId, materi, metode, catatan }
-    bobot: {}, // { mapelId: { kategoriId: weight } }
-    nilai: {},  // { siswaId: { mapelId: { kategoriId: score } } }
-    kehadiran: [] // { id, tanggal, kelasId, mapelId, siswaId, status }
+    jurnal: [],
+    bobot: {},
+    nilai: {},
+    kehadiran: []
 };
+
+// Login Logic
+function checkLogin() {
+    // Simple session check
+    const isLoggedIn = sessionStorage.getItem('isLoggedIn');
+    if (!isLoggedIn) {
+        document.getElementById('login-overlay').classList.remove('hidden');
+    } else {
+        document.getElementById('login-overlay').classList.add('hidden');
+    }
+}
+
+function handleLogin() {
+    const u = document.getElementById('login-username').value;
+    const p = document.getElementById('login-password').value;
+
+    if (u === 'smpthhk' && p === 'qwerty12345') {
+        sessionStorage.setItem('isLoggedIn', 'true');
+        document.getElementById('login-overlay').classList.add('hidden');
+    } else {
+        alert('Username atau Password salah!');
+    }
+}
+
+function handleLogout() {
+    sessionStorage.removeItem('isLoggedIn');
+    location.reload();
+}
+
+// PWA Install Logic
+let deferredPrompt;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+});
+
+async function installPWA() {
+    if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        console.log(`User response to the install prompt: ${outcome}`);
+        deferredPrompt = null;
+    } else {
+        alert('Aplikasi sudah terinstall atau browser tidak mendukung instalasi.');
+    }
+}
 
 // Initialization
 document.addEventListener('DOMContentLoaded', () => {
+    checkLogin();
     loadData();
     setupNavigation();
     updateDashboardStats();
@@ -20,15 +72,62 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Data Persistence
-function loadData() {
-    const storedData = localStorage.getItem(STORAGE_KEY);
-    if (storedData) {
-        appData = JSON.parse(storedData);
+// Data Persistence
+async function loadData() {
+    try {
+        const [
+            { data: kelas },
+            { data: siswa },
+            { data: mapel },
+            { data: kategori },
+            { data: jurnal },
+            { data: bobot },
+            { data: nilai },
+            { data: kehadiran }
+        ] = await Promise.all([
+            sb.from('kelas').select('*'),
+            sb.from('siswa').select('*'),
+            sb.from('mapel').select('*'),
+            sb.from('kategori').select('*'),
+            sb.from('jurnal').select('*'),
+            sb.from('bobot').select('*'),
+            sb.from('nilai').select('*'),
+            sb.from('kehadiran').select('*')
+        ]);
+
+        appData.kelas = kelas || [];
+        appData.siswa = (siswa || []).map(s => ({ ...s, kelasId: s.kelas_id }));
+        appData.mapel = mapel || [];
+        appData.kategori = kategori || [];
+        appData.jurnal = (jurnal || []).map(j => ({ ...j, kelasId: j.kelas_id, mapelId: j.mapel_id }));
+        appData.kehadiran = (kehadiran || []).map(k => ({ ...k, kelasId: k.kelas_id, mapelId: k.mapel_id, siswaId: k.siswa_id }));
+
+        // Transform Bobot
+        appData.bobot = {};
+        (bobot || []).forEach(b => {
+            if (!appData.bobot[b.mapel_id]) appData.bobot[b.mapel_id] = {};
+            appData.bobot[b.mapel_id][b.kategori_id] = b.weight;
+        });
+
+        // Transform Nilai
+        appData.nilai = {};
+        (nilai || []).forEach(n => {
+            if (!appData.nilai[n.siswa_id]) appData.nilai[n.siswa_id] = {};
+            if (!appData.nilai[n.siswa_id][n.mapel_id]) appData.nilai[n.siswa_id][n.mapel_id] = {};
+            appData.nilai[n.siswa_id][n.mapel_id][n.kategori_id] = n.score;
+        });
+
+        updateDashboardStats();
+        renderAllTables();
+    } catch (error) {
+        console.error('Error loading data:', error);
+        alert('Gagal memuat data dari server. Pastikan koneksi internet lancar.');
     }
 }
 
 function saveData() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+    // Deprecated in favor of direct DB calls
+    console.log('Data saved to local state');
     updateDashboardStats();
 }
 
@@ -54,7 +153,9 @@ function setupNavigation() {
             });
 
             // Update Header Title
-            pageTitle.textContent = item.textContent.trim();
+            if (pageTitle) {
+                pageTitle.textContent = item.textContent.trim();
+            }
 
             // Refresh data for specific views
             if (targetId === 'siswa') renderKelasOptions('filter-siswa-kelas', true);
@@ -89,17 +190,65 @@ function updateDashboardStats() {
     document.getElementById('stat-siswa').textContent = appData.siswa.length;
     document.getElementById('stat-kelas').textContent = appData.kelas.length;
     document.getElementById('stat-mapel').textContent = appData.mapel.length;
+
+    // New stats
+    if (document.getElementById('stat-kategori')) {
+        document.getElementById('stat-kategori').textContent = appData.kategori.length;
+    }
+
+    // Calculate Average
+    let totalScore = 0;
+    let totalCount = 0;
+
+    if (appData.nilai) {
+        Object.values(appData.nilai).forEach(siswaMapels => {
+            Object.values(siswaMapels).forEach(kategoriScores => {
+                Object.values(kategoriScores).forEach(score => {
+                    totalScore += parseFloat(score);
+                    totalCount++;
+                });
+            });
+        });
+    }
+
+    const average = totalCount > 0 ? (totalScore / totalCount).toFixed(1) : '0';
+    if (document.getElementById('stat-rata')) {
+        document.getElementById('stat-rata').textContent = average;
+    }
 }
 
 // Modal Management
 function openModal(modalId) {
     document.getElementById(modalId).classList.add('active');
-    if (modalId === 'modal-siswa') renderKelasOptions('siswa-kelas');
+
+    // Clear forms for Master Data
+    if (modalId === 'modal-kelas') {
+        document.getElementById('kelas-id').value = '';
+        document.getElementById('kelas-nama').value = '';
+    }
+    if (modalId === 'modal-siswa') {
+        document.getElementById('siswa-id').value = '';
+        document.getElementById('siswa-nama').value = '';
+        document.getElementById('siswa-nis').value = '';
+        renderKelasOptions('siswa-kelas');
+    }
+    if (modalId === 'modal-mapel') {
+        document.getElementById('mapel-id').value = '';
+        document.getElementById('mapel-nama').value = '';
+        document.getElementById('mapel-deskripsi').value = '';
+    }
+    if (modalId === 'modal-kategori') {
+        document.getElementById('kategori-id').value = '';
+        document.getElementById('kategori-nama').value = '';
+        document.getElementById('kategori-deskripsi').value = '';
+    }
+
     if (modalId === 'modal-jurnal') {
         renderKelasOptions('jurnal-kelas');
         renderMapelOptions('jurnal-mapel');
         // Set default date to today
         document.getElementById('jurnal-tanggal').valueAsDate = new Date();
+        document.getElementById('jurnal-siswa-list').innerHTML = '<p class="text-muted" style="text-align: center; font-size: 0.9rem;">Pilih Kelas untuk memuat daftar siswa.</p>';
     }
 }
 
@@ -119,15 +268,39 @@ function generateId() {
 }
 
 // --- KELAS MANAGEMENT ---
-function addKelas() {
+async function addKelas() {
+    const id = document.getElementById('kelas-id').value;
     const nama = document.getElementById('kelas-nama').value;
     if (!nama) return alert('Nama kelas harus diisi!');
 
-    appData.kelas.push({ id: generateId(), nama: nama });
-    saveData();
+    const kelasData = {
+        id: id || generateId(),
+        nama: nama
+    };
+
+    const { error } = await sb.from('kelas').upsert([kelasData]);
+
+    if (error) return alert('Gagal menyimpan: ' + error.message);
+
+    if (id) {
+        const index = appData.kelas.findIndex(k => k.id === id);
+        if (index !== -1) appData.kelas[index] = kelasData;
+    } else {
+        appData.kelas.push(kelasData);
+    }
+
     renderKelasTable();
     closeModal('modal-kelas');
-    document.getElementById('kelas-nama').value = '';
+    updateDashboardStats();
+}
+
+function editKelas(id) {
+    const k = appData.kelas.find(k => k.id === id);
+    if (k) {
+        openModal('modal-kelas');
+        document.getElementById('kelas-id').value = k.id;
+        document.getElementById('kelas-nama').value = k.nama;
+    }
 }
 
 function renderKelasTable() {
@@ -141,6 +314,7 @@ function renderKelasTable() {
             <td>${k.nama}</td>
             <td>${siswaCount} Siswa</td>
             <td>
+                <button class="btn-secondary" onclick="editKelas('${k.id}')" style="margin-right: 0.5rem;"><i class="fa-solid fa-pen"></i></button>
                 <button class="btn-danger" onclick="deleteKelas('${k.id}')"><i class="fa-solid fa-trash"></i></button>
             </td>
         `;
@@ -148,28 +322,60 @@ function renderKelasTable() {
     });
 }
 
-function deleteKelas(id) {
+async function deleteKelas(id) {
     if (confirm('Hapus kelas ini? Data siswa di dalamnya mungkin akan terpengaruh.')) {
+        const { error } = await sb.from('kelas').delete().eq('id', id);
+        if (error) return alert('Gagal menghapus: ' + error.message);
+
         appData.kelas = appData.kelas.filter(k => k.id !== id);
-        saveData();
         renderKelasTable();
+        updateDashboardStats();
     }
 }
 
 // --- SISWA MANAGEMENT ---
-function addSiswa() {
+async function addSiswa() {
+    const id = document.getElementById('siswa-id').value;
     const nama = document.getElementById('siswa-nama').value;
     const nis = document.getElementById('siswa-nis').value;
     const kelasId = document.getElementById('siswa-kelas').value;
 
     if (!nama || !nis || !kelasId) return alert('Semua data harus diisi!');
 
-    appData.siswa.push({ id: generateId(), nama, nis, kelasId });
-    saveData();
+    const siswaData = {
+        id: id || generateId(),
+        nama,
+        nis,
+        kelas_id: kelasId
+    };
+
+    const { error } = await sb.from('siswa').upsert([siswaData]);
+
+    if (error) return alert('Gagal menyimpan: ' + error.message);
+
+    const localSiswa = { ...siswaData, kelasId: kelasId };
+
+    if (id) {
+        const index = appData.siswa.findIndex(s => s.id === id);
+        if (index !== -1) appData.siswa[index] = localSiswa;
+    } else {
+        appData.siswa.push(localSiswa);
+    }
+
     renderSiswaTable();
     closeModal('modal-siswa');
-    document.getElementById('siswa-nama').value = '';
-    document.getElementById('siswa-nis').value = '';
+    updateDashboardStats();
+}
+
+function editSiswa(id) {
+    const s = appData.siswa.find(s => s.id === id);
+    if (s) {
+        openModal('modal-siswa');
+        document.getElementById('siswa-id').value = s.id;
+        document.getElementById('siswa-nama').value = s.nama;
+        document.getElementById('siswa-nis').value = s.nis;
+        document.getElementById('siswa-kelas').value = s.kelasId;
+    }
 }
 
 function renderSiswaTable() {
@@ -191,6 +397,7 @@ function renderSiswaTable() {
             <td>${s.nama}</td>
             <td>${kelas ? kelas.nama : '-'}</td>
             <td>
+                <button class="btn-secondary" onclick="editSiswa('${s.id}')" style="margin-right: 0.5rem;"><i class="fa-solid fa-pen"></i></button>
                 <button class="btn-danger" onclick="deleteSiswa('${s.id}')"><i class="fa-solid fa-trash"></i></button>
             </td>
         `;
@@ -198,29 +405,56 @@ function renderSiswaTable() {
     });
 }
 
-function deleteSiswa(id) {
+async function deleteSiswa(id) {
     if (confirm('Hapus siswa ini?')) {
+        const { error } = await sb.from('siswa').delete().eq('id', id);
+        if (error) return alert('Gagal menghapus: ' + error.message);
+
         appData.siswa = appData.siswa.filter(s => s.id !== id);
-        // Clean up grades
         delete appData.nilai[id];
-        saveData();
         renderSiswaTable();
+        updateDashboardStats();
     }
 }
 
 // --- MAPEL MANAGEMENT ---
-function addMapel() {
+async function addMapel() {
+    const id = document.getElementById('mapel-id').value;
     const nama = document.getElementById('mapel-nama').value;
     const deskripsi = document.getElementById('mapel-deskripsi').value;
 
     if (!nama) return alert('Nama mata pelajaran harus diisi!');
 
-    appData.mapel.push({ id: generateId(), nama, deskripsi });
-    saveData();
+    const mapelData = {
+        id: id || generateId(),
+        nama,
+        deskripsi
+    };
+
+    const { error } = await sb.from('mapel').upsert([mapelData]);
+
+    if (error) return alert('Gagal menyimpan: ' + error.message);
+
+    if (id) {
+        const index = appData.mapel.findIndex(m => m.id === id);
+        if (index !== -1) appData.mapel[index] = mapelData;
+    } else {
+        appData.mapel.push(mapelData);
+    }
+
     renderMapelTable();
     closeModal('modal-mapel');
-    document.getElementById('mapel-nama').value = '';
-    document.getElementById('mapel-deskripsi').value = '';
+    updateDashboardStats();
+}
+
+function editMapel(id) {
+    const m = appData.mapel.find(m => m.id === id);
+    if (m) {
+        openModal('modal-mapel');
+        document.getElementById('mapel-id').value = m.id;
+        document.getElementById('mapel-nama').value = m.nama;
+        document.getElementById('mapel-deskripsi').value = m.deskripsi;
+    }
 }
 
 function renderMapelTable() {
@@ -233,6 +467,7 @@ function renderMapelTable() {
             <td>${m.nama}</td>
             <td>${m.deskripsi}</td>
             <td>
+                <button class="btn-secondary" onclick="editMapel('${m.id}')" style="margin-right: 0.5rem;"><i class="fa-solid fa-pen"></i></button>
                 <button class="btn-danger" onclick="deleteMapel('${m.id}')"><i class="fa-solid fa-trash"></i></button>
             </td>
         `;
@@ -240,28 +475,55 @@ function renderMapelTable() {
     });
 }
 
-function deleteMapel(id) {
+async function deleteMapel(id) {
     if (confirm('Hapus mata pelajaran ini?')) {
+        const { error } = await sb.from('mapel').delete().eq('id', id);
+        if (error) return alert('Gagal menghapus: ' + error.message);
+
         appData.mapel = appData.mapel.filter(m => m.id !== id);
         delete appData.bobot[id];
-        saveData();
         renderMapelTable();
+        updateDashboardStats();
     }
 }
 
 // --- KATEGORI MANAGEMENT ---
-function addKategori() {
+async function addKategori() {
+    const id = document.getElementById('kategori-id').value;
     const nama = document.getElementById('kategori-nama').value;
     const deskripsi = document.getElementById('kategori-deskripsi').value;
 
     if (!nama) return alert('Nama kategori harus diisi!');
 
-    appData.kategori.push({ id: generateId(), nama, deskripsi });
-    saveData();
+    const kategoriData = {
+        id: id || generateId(),
+        nama,
+        deskripsi
+    };
+
+    const { error } = await sb.from('kategori').upsert([kategoriData]);
+
+    if (error) return alert('Gagal menyimpan: ' + error.message);
+
+    if (id) {
+        const index = appData.kategori.findIndex(k => k.id === id);
+        if (index !== -1) appData.kategori[index] = kategoriData;
+    } else {
+        appData.kategori.push(kategoriData);
+    }
+
     renderKategoriTable();
     closeModal('modal-kategori');
-    document.getElementById('kategori-nama').value = '';
-    document.getElementById('kategori-deskripsi').value = '';
+}
+
+function editKategori(id) {
+    const k = appData.kategori.find(k => k.id === id);
+    if (k) {
+        openModal('modal-kategori');
+        document.getElementById('kategori-id').value = k.id;
+        document.getElementById('kategori-nama').value = k.nama;
+        document.getElementById('kategori-deskripsi').value = k.deskripsi;
+    }
 }
 
 function renderKategoriTable() {
@@ -274,6 +536,7 @@ function renderKategoriTable() {
             <td>${k.nama}</td>
             <td>${k.deskripsi}</td>
             <td>
+                <button class="btn-secondary" onclick="editKategori('${k.id}')" style="margin-right: 0.5rem;"><i class="fa-solid fa-pen"></i></button>
                 <button class="btn-danger" onclick="deleteKategori('${k.id}')"><i class="fa-solid fa-trash"></i></button>
             </td>
         `;
@@ -281,16 +544,52 @@ function renderKategoriTable() {
     });
 }
 
-function deleteKategori(id) {
+async function deleteKategori(id) {
     if (confirm('Hapus kategori ini?')) {
+        const { error } = await sb.from('kategori').delete().eq('id', id);
+        if (error) return alert('Gagal menghapus: ' + error.message);
+
         appData.kategori = appData.kategori.filter(k => k.id !== id);
-        saveData();
         renderKategoriTable();
     }
 }
 
 // --- JURNAL MANAGEMENT ---
-function addJurnal() {
+function renderJurnalSiswaList() {
+    const kelasId = document.getElementById('jurnal-kelas').value;
+    const container = document.getElementById('jurnal-siswa-list');
+
+    if (!kelasId) {
+        container.innerHTML = '<p class="text-muted" style="text-align: center; font-size: 0.9rem;">Pilih Kelas untuk memuat daftar siswa.</p>';
+        return;
+    }
+
+    const siswaInKelas = appData.siswa.filter(s => s.kelasId === kelasId);
+
+    if (siswaInKelas.length === 0) {
+        container.innerHTML = '<p class="text-muted" style="text-align: center; font-size: 0.9rem;">Tidak ada siswa di kelas ini.</p>';
+        return;
+    }
+
+    container.innerHTML = '';
+    siswaInKelas.forEach(s => {
+        const div = document.createElement('div');
+        div.className = 'jurnal-siswa-item';
+        div.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #eee;';
+        div.innerHTML = `
+            <span style="font-size: 0.9rem; font-weight: 500;">${s.nama}</span>
+            <div class="attendance-options" style="display: flex; gap: 10px;">
+                <label style="font-size: 0.85rem; cursor: pointer;"><input type="radio" name="jurnal-status-${s.id}" value="H" checked> H</label>
+                <label style="font-size: 0.85rem; cursor: pointer;"><input type="radio" name="jurnal-status-${s.id}" value="I"> I</label>
+                <label style="font-size: 0.85rem; cursor: pointer;"><input type="radio" name="jurnal-status-${s.id}" value="S"> S</label>
+                <label style="font-size: 0.85rem; cursor: pointer;"><input type="radio" name="jurnal-status-${s.id}" value="A"> A</label>
+            </div>
+        `;
+        container.appendChild(div);
+    });
+}
+
+async function addJurnal() {
     const tanggal = document.getElementById('jurnal-tanggal').value;
     const kelasId = document.getElementById('jurnal-kelas').value;
     const mapelId = document.getElementById('jurnal-mapel').value;
@@ -300,23 +599,59 @@ function addJurnal() {
 
     if (!tanggal || !kelasId || !mapelId || !materi) return alert('Tanggal, Kelas, Mapel, dan Materi wajib diisi!');
 
-    appData.jurnal.push({
+    const newJurnal = {
         id: generateId(),
         tanggal,
-        kelasId,
-        mapelId,
+        kelas_id: kelasId,
+        mapel_id: mapelId,
         materi,
         metode,
         catatan
-    });
-    saveData();
+    };
+
+    const { error } = await sb.from('jurnal').insert([newJurnal]);
+    if (error) return alert('Gagal menyimpan jurnal: ' + error.message);
+
+    // Save Attendance
+    const siswaItems = document.querySelectorAll('input[name^="jurnal-status-"]:checked');
+    if (siswaItems.length > 0) {
+        const kehadiranToSave = [];
+        siswaItems.forEach(item => {
+            const siswaId = item.name.replace('jurnal-status-', '');
+            kehadiranToSave.push({
+                id: generateId(),
+                tanggal,
+                kelas_id: kelasId,
+                mapel_id: mapelId,
+                siswa_id: siswaId,
+                status: item.value,
+                keterangan: ''
+            });
+        });
+
+        // Delete existing for this scope
+        await sb.from('kehadiran').delete().match({ tanggal, kelas_id: kelasId, mapel_id: mapelId });
+
+        const { error: absensiError } = await sb.from('kehadiran').insert(kehadiranToSave);
+        if (absensiError) console.error('Gagal menyimpan absensi:', absensiError);
+
+        // Update local state
+        appData.kehadiran = appData.kehadiran.filter(k =>
+            !(k.kelasId === kelasId && k.mapelId === mapelId && k.tanggal === tanggal)
+        );
+        kehadiranToSave.forEach(k => {
+            appData.kehadiran.push({ ...k, kelasId: k.kelas_id, mapelId: k.mapel_id, siswaId: k.siswa_id });
+        });
+    }
+
+    appData.jurnal.push({ ...newJurnal, kelasId, mapelId });
     renderJurnalTable();
     closeModal('modal-jurnal');
 
-    // Reset form
     document.getElementById('jurnal-materi').value = '';
     document.getElementById('jurnal-metode').value = '';
     document.getElementById('jurnal-catatan').value = '';
+    document.getElementById('jurnal-siswa-list').innerHTML = '<p class="text-muted" style="text-align: center; font-size: 0.9rem;">Pilih Kelas untuk memuat daftar siswa.</p>';
 }
 
 function renderJurnalTable() {
@@ -346,10 +681,12 @@ function renderJurnalTable() {
     });
 }
 
-function deleteJurnal(id) {
+async function deleteJurnal(id) {
     if (confirm('Hapus jurnal ini?')) {
+        const { error } = await sb.from('jurnal').delete().eq('id', id);
+        if (error) return alert('Gagal menghapus: ' + error.message);
+
         appData.jurnal = appData.jurnal.filter(j => j.id !== id);
-        saveData();
         renderJurnalTable();
     }
 }
@@ -393,24 +730,36 @@ function calculateTotalBobot() {
     totalDisplay.style.color = total === 100 ? 'var(--success-color)' : 'var(--danger-color)';
 }
 
-function saveWeights() {
+async function saveWeights() {
     const mapelId = document.getElementById('select-bobot-mapel').value;
     if (!mapelId) return alert('Pilih mata pelajaran!');
 
     const inputs = document.querySelectorAll('.bobot-input');
     let total = 0;
-    const weights = {};
+    const weightsToSave = [];
 
     inputs.forEach(input => {
         const val = parseInt(input.value || 0);
         total += val;
-        weights[input.dataset.kategori] = val;
+        weightsToSave.push({
+            mapel_id: mapelId,
+            kategori_id: input.dataset.kategori,
+            weight: val
+        });
     });
 
     if (total !== 100) return alert(`Total bobot harus 100%! Saat ini: ${total}%`);
 
-    appData.bobot[mapelId] = weights;
-    saveData();
+    // Upsert to Supabase
+    const { error } = await sb.from('bobot').upsert(weightsToSave, { onConflict: 'mapel_id,kategori_id' });
+    if (error) return alert('Gagal menyimpan bobot: ' + error.message);
+
+    // Update local state
+    if (!appData.bobot[mapelId]) appData.bobot[mapelId] = {};
+    weightsToSave.forEach(w => {
+        appData.bobot[mapelId][w.kategori_id] = w.weight;
+    });
+
     alert('Bobot berhasil disimpan!');
 }
 
@@ -456,27 +805,43 @@ function prepareInputNilai() {
     });
 }
 
-function saveGrades() {
+async function saveGrades() {
     const mapelId = document.getElementById('input-mapel').value;
     const kategoriId = document.getElementById('input-kategori').value;
 
     if (!mapelId || !kategoriId) return alert('Data belum lengkap!');
 
     const inputs = document.querySelectorAll('.input-score');
+    const gradesToSave = [];
     let count = 0;
 
     inputs.forEach(input => {
         const siswaId = input.dataset.siswa;
         const score = input.value;
 
-        if (!appData.nilai[siswaId]) appData.nilai[siswaId] = {};
-        if (!appData.nilai[siswaId][mapelId]) appData.nilai[siswaId][mapelId] = {};
-
-        appData.nilai[siswaId][mapelId][kategoriId] = score;
-        count++;
+        if (score !== '') {
+            gradesToSave.push({
+                siswa_id: siswaId,
+                mapel_id: mapelId,
+                kategori_id: kategoriId,
+                score: parseFloat(score)
+            });
+            count++;
+        }
     });
 
-    saveData();
+    if (count === 0) return alert('Tidak ada nilai yang diinput.');
+
+    const { error } = await sb.from('nilai').upsert(gradesToSave, { onConflict: 'siswa_id,mapel_id,kategori_id' });
+    if (error) return alert('Gagal menyimpan nilai: ' + error.message);
+
+    // Update local state
+    gradesToSave.forEach(g => {
+        if (!appData.nilai[g.siswa_id]) appData.nilai[g.siswa_id] = {};
+        if (!appData.nilai[g.siswa_id][g.mapel_id]) appData.nilai[g.siswa_id][g.mapel_id] = {};
+        appData.nilai[g.siswa_id][g.mapel_id][g.kategori_id] = g.score;
+    });
+
     alert(`${count} Nilai berhasil disimpan!`);
 }
 
@@ -663,12 +1028,36 @@ function handleStudentImport(input) {
     reader.readAsArrayBuffer(file);
 }
 
-function processStudentImport(data) {
+async function processStudentImport(data) {
     // Skip header row
     if (data.length <= 1) return alert('File kosong atau format salah!');
 
     let successCount = 0;
+    const newKelasList = [];
+    const newSiswaList = [];
 
+    // First pass: Identify new classes
+    for (let i = 1; i < data.length; i++) {
+        const row = data[i];
+        const namaKelas = row[2];
+        if (namaKelas) {
+            const existingKelas = appData.kelas.find(k => k.nama.toLowerCase() === namaKelas.toString().toLowerCase())
+                || newKelasList.find(k => k.nama.toLowerCase() === namaKelas.toString().toLowerCase());
+
+            if (!existingKelas) {
+                newKelasList.push({ id: generateId(), nama: namaKelas.toString() });
+            }
+        }
+    }
+
+    // Insert new classes to Supabase
+    if (newKelasList.length > 0) {
+        const { error } = await sb.from('kelas').insert(newKelasList);
+        if (error) return alert('Gagal import kelas: ' + error.message);
+        appData.kelas.push(...newKelasList);
+    }
+
+    // Second pass: Prepare students
     for (let i = 1; i < data.length; i++) {
         const row = data[i];
         const nama = row[0];
@@ -676,35 +1065,33 @@ function processStudentImport(data) {
         const namaKelas = row[2];
 
         if (nama && nis) {
-            // Find or create class
             let kelasId = '';
             if (namaKelas) {
-                const existingKelas = appData.kelas.find(k => k.nama.toLowerCase() === namaKelas.toString().toLowerCase());
-                if (existingKelas) {
-                    kelasId = existingKelas.id;
-                } else {
-                    // Create new class if not exists
-                    const newKelas = { id: generateId(), nama: namaKelas };
-                    appData.kelas.push(newKelas);
-                    kelasId = newKelas.id;
-                }
+                const k = appData.kelas.find(k => k.nama.toLowerCase() === namaKelas.toString().toLowerCase());
+                if (k) kelasId = k.id;
             }
 
-            // Add student
-            appData.siswa.push({
+            newSiswaList.push({
                 id: generateId(),
                 nama: nama,
                 nis: nis.toString(),
-                kelasId: kelasId
+                kelas_id: kelasId
             });
             successCount++;
         }
     }
 
-    saveData();
-    renderAllTables(); // Refresh all tables including kelas and siswa
-    saveData();
-    renderAllTables(); // Refresh all tables including kelas and siswa
+    // Insert students to Supabase
+    if (newSiswaList.length > 0) {
+        const { error } = await sb.from('siswa').insert(newSiswaList);
+        if (error) return alert('Gagal import siswa: ' + error.message);
+
+        const mappedSiswa = newSiswaList.map(s => ({ ...s, kelasId: s.kelas_id }));
+        appData.siswa.push(...mappedSiswa);
+    }
+
+    renderAllTables();
+    updateDashboardStats();
     alert(`Berhasil mengimport ${successCount} siswa!`);
 }
 
@@ -754,7 +1141,7 @@ function renderInputKehadiranTable() {
     });
 }
 
-function saveKehadiran() {
+async function saveKehadiran() {
     const kelasId = document.getElementById('absensi-kelas').value;
     const mapelId = document.getElementById('absensi-mapel').value;
     const tanggal = document.getElementById('absensi-tanggal').value;
@@ -762,24 +1149,34 @@ function saveKehadiran() {
     if (!kelasId || !mapelId || !tanggal) return alert('Data belum lengkap!');
 
     const siswaInKelas = appData.siswa.filter(s => s.kelasId === kelasId);
+    const kehadiranToSave = [];
     let count = 0;
 
-    // Remove existing records for this day/class/mapel to avoid duplicates
-    appData.kehadiran = appData.kehadiran.filter(k =>
-        !(k.kelasId === kelasId && k.mapelId === mapelId && k.tanggal === tanggal)
-    );
+    // Delete existing records for this day/class/mapel first to handle updates cleanly
+    // Or we can use upsert if we had a unique constraint on (tanggal, kelas_id, mapel_id, siswa_id)
+    // The SQL I provided does NOT have a unique constraint on these 4 fields combined, only ID is primary key.
+    // However, logic suggests one status per student per session.
+    // Let's first delete existing for this session to be safe, then insert.
+
+    // Actually, better to use upsert if I can identify the ID. But I don't have the ID easily here without looking it up.
+    // Let's delete based on filters then insert.
+
+    const { error: deleteError } = await sb.from('kehadiran').delete()
+        .match({ tanggal, kelas_id: kelasId, mapel_id: mapelId });
+
+    if (deleteError) return alert('Gagal memproses data lama: ' + deleteError.message);
 
     siswaInKelas.forEach(s => {
         const statusRadio = document.querySelector(`input[name="status-${s.id}"]:checked`);
         const keteranganInput = document.querySelector(`.input-keterangan[data-siswa="${s.id}"]`);
 
         if (statusRadio) {
-            appData.kehadiran.push({
+            kehadiranToSave.push({
                 id: generateId(),
                 tanggal,
-                kelasId,
-                mapelId,
-                siswaId: s.id,
+                kelas_id: kelasId,
+                mapel_id: mapelId,
+                siswa_id: s.id,
                 status: statusRadio.value,
                 keterangan: keteranganInput ? keteranganInput.value : ''
             });
@@ -787,7 +1184,20 @@ function saveKehadiran() {
         }
     });
 
-    saveData();
+    if (count > 0) {
+        const { error } = await sb.from('kehadiran').insert(kehadiranToSave);
+        if (error) return alert('Gagal menyimpan kehadiran: ' + error.message);
+    }
+
+    // Update local state by reloading (easier than patching array manually)
+    // Or patch manually:
+    appData.kehadiran = appData.kehadiran.filter(k =>
+        !(k.kelasId === kelasId && k.mapelId === mapelId && k.tanggal === tanggal)
+    );
+    kehadiranToSave.forEach(k => {
+        appData.kehadiran.push({ ...k, kelasId: k.kelas_id, mapelId: k.mapel_id, siswaId: k.siswa_id });
+    });
+
     alert(`${count} Data kehadiran berhasil disimpan!`);
 }
 
@@ -837,7 +1247,7 @@ function renderRekapKehadiranTable() {
     });
 }
 
-function exportRekapKehadiran() {
+function exportAttendanceToExcel() {
     const table = document.querySelector('#view-rekap-kehadiran table');
     if (!table) return;
 
