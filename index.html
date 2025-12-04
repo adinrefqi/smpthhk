@@ -36,8 +36,8 @@
             <p style="text-align: center; color: var(--text-secondary); margin-bottom: 2rem;">Silakan login untuk
                 melanjutkan</p>
             <div class="form-group">
-                <label>Username</label>
-                <input type="text" id="login-username" class="form-control" placeholder="Masukkan username">
+                <label>Email</label>
+                <input type="email" id="login-email" class="form-control" placeholder="Masukkan email">
             </div>
             <div class="form-group">
                 <label>Password</label>
@@ -59,19 +59,19 @@
                     <i class="fa-solid fa-home"></i> Dashboard
                 </button>
                 <div class="nav-divider">Master Data</div>
-                <button class="nav-item" data-target="kelas">
+                <button class="nav-item" data-target="kelas" id="menu-master-data">
                     <i class="fa-solid fa-chalkboard-user"></i> Kelola Kelas
                 </button>
-                <button class="nav-item" data-target="siswa">
+                <button class="nav-item" data-target="siswa" id="menu-master-siswa">
                     <i class="fa-solid fa-users"></i> Kelola Siswa
                 </button>
-                <button class="nav-item" data-target="mapel">
+                <button class="nav-item" data-target="mapel" id="menu-master-mapel">
                     <i class="fa-solid fa-book"></i> Mata Pelajaran
                 </button>
                 <button class="nav-item" data-target="jurnal">
                     <i class="fa-solid fa-book-open"></i> Jurnal Harian
                 </button>
-                <button class="nav-item" data-target="kategori">
+                <button class="nav-item" data-target="kategori" id="menu-master-kategori">
                     <i class="fa-solid fa-tags"></i> Kategori Nilai
                 </button>
                 <div class="nav-divider">Penilaian</div>
@@ -91,7 +91,7 @@
                     <i class="fa-solid fa-clipboard-user"></i> Rekap Kehadiran
                 </button>
                 <div class="nav-divider">System</div>
-                <button class="nav-item" data-target="data">
+                <button class="nav-item" data-target="data" id="menu-system">
                     <i class="fa-solid fa-database"></i> Kelola Data
                 </button>
             </nav>
