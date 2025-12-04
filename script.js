@@ -1279,4 +1279,10 @@ function toggleSidebar() {
 }
 
 // Close sidebar when clicking a nav item on mobile
-document.query
+document.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', () => {
+        if (window.innerWidth <= 768) {
+            toggleSidebar();
+        }
+    });
+});
