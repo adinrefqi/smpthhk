@@ -981,9 +981,12 @@ function restoreData(input) {
 }
 
 function resetData() {
-    if (confirm('PERINGATAN: Semua data akan dihapus permanen! Lanjutkan?')) {
+    const keyword = prompt('PERINGATAN: Semua data akan dihapus permanen! Masukkan kata kunci "smpthhkok" untuk konfirmasi:');
+    if (keyword === 'smpthhkok') {
         localStorage.removeItem(STORAGE_KEY);
         location.reload();
+    } else if (keyword !== null) {
+        alert('Kata kunci salah! Reset data dibatalkan.');
     }
 }
 
@@ -1276,10 +1279,4 @@ function toggleSidebar() {
 }
 
 // Close sidebar when clicking a nav item on mobile
-document.querySelectorAll('.nav-item').forEach(item => {
-    item.addEventListener('click', () => {
-        if (window.innerWidth <= 768) {
-            toggleSidebar();
-        }
-    });
-});
+document.query
