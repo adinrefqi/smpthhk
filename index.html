@@ -10,6 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#4f46e5">
@@ -26,6 +27,26 @@
 </head>
 
 <body>
+    <div id="login-overlay" class="login-overlay">
+        <div class="login-card">
+            <div class="brand" style="justify-content: center; margin-bottom: 2rem;">
+                <i class="fa-solid fa-graduation-cap" style="font-size: 3rem; color: var(--accent-color);"></i>
+            </div>
+            <h2 style="text-align: center; margin-bottom: 0.5rem;">Sistem Nilai</h2>
+            <p style="text-align: center; color: var(--text-secondary); margin-bottom: 2rem;">Silakan login untuk
+                melanjutkan</p>
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" id="login-username" class="form-control" placeholder="Masukkan username">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="login-password" class="form-control" placeholder="Masukkan password">
+            </div>
+            <button class="btn-primary" style="width: 100%; justify-content: center; margin-top: 1rem;"
+                onclick="handleLogin()">Masuk</button>
+        </div>
+    </div>
     <div class="app-container">
         <!-- Sidebar -->
         <aside class="sidebar">
